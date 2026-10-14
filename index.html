@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-apple-touch.png">
+<title>حساباتي — ELYAMANI Money</title>
+<style>
+:root{
+  --bg:#F4F2EC; --ink:#000000; --mut:#5c6570; --card:#ffffff; --line:#E2DFD4;
+  --black:#000000; --slate:#36454F; --gold:#D4AF37; --white:#FFFFFF;
+  --ok:#1f8a4c; --bad:#b3261e; --warn:#D4AF37;
+}
+@media(prefers-color-scheme:dark){
+  :root{ --bg:#000000; --ink:#F4F2EC; --mut:#9aa6b2; --card:#14181D; --line:#2A2F36;
+  --ok:#5fd889; --bad:#ff8a7a; --warn:#E6C568; }
+}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.65 "Segoe UI",Tahoma,"Noto Naskh Arabic",Arial,sans-serif;
+  padding:env(safe-area-inset-top) 0 calc(78px + env(safe-area-inset-bottom))}
+main{max-width:560px;margin:auto;padding:14px}
+h1{font-size:19px;margin:4px 0 12px;letter-spacing:.2px}
+h2{font-size:15px;margin:20px 0 8px;color:var(--mut);font-weight:700}
+.hero{background:linear-gradient(160deg,var(--black),var(--slate));color:#fff;border-radius:16px;padding:18px;position:relative;overflow:hidden}
+.hero .brandline{display:flex;align-items:center;gap:8px;font-size:12px;opacity:.75}
+.hero .brandline img{width:20px;height:20px;border-radius:5px}
+.hero .motto{border-inline-start:3px solid var(--gold);padding:3px 10px;margin:10px 0 2px;font-weight:700;color:var(--gold)}
+.hero .big{font-size:30px;font-weight:800;direction:ltr;text-align:right;margin-top:8px}
+.hero .lbl{font-size:12px;opacity:.7}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px;margin:8px 0}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.num{direction:ltr;font-weight:700}.in{color:var(--ok)}.out{color:var(--bad)}.mut{color:var(--mut);font-size:13.5px}
+.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--gold);color:#1a1405;font-weight:700}
+button,select,input,textarea{font:inherit;color:var(--ink)}
+button{border:0;border-radius:11px;padding:12px 16px;background:var(--black);color:#fff;min-height:46px;font-weight:700}
+@media(prefers-color-scheme:dark){button{background:var(--gold);color:#1a1405}}
+button.s{background:transparent;color:var(--ink);border:1.5px solid var(--line);font-weight:600}
+button.d{background:var(--bad);color:#fff}
+button.gold{background:var(--gold);color:#1a1405}
+button.block{width:100%;margin:6px 0}
+input,select,textarea{width:100%;padding:11px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);margin:4px 0 10px;min-height:46px}
+label{font-size:13.5px;color:var(--mut);font-weight:600}
+nav{position:fixed;inset:auto 0 0 0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:9px 1px;font-size:11.5px;min-height:0;font-weight:600}
+nav button.on{color:var(--gold)}
+.fab{position:fixed;inset-inline-start:14px;bottom:calc(68px + env(safe-area-inset-bottom));box-shadow:0 6px 16px #0005;border-radius:30px;z-index:6}
+.seg{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}.seg button{flex:1 1 auto;padding:9px 6px;font-size:13.5px;min-height:38px}
+.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);border:1px solid var(--warn);border-radius:10px;padding:10px;margin:8px 0;font-size:14px}
+dialog{border:0;border-radius:16px;padding:16px;width:min(92vw,520px);background:var(--bg);color:var(--ink);max-height:88vh;overflow:auto}
+dialog::backdrop{background:#000a}
+.tabs{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto}
+.tabs button{padding:7px 12px;min-height:34px;font-size:13px;white-space:nowrap}
+.bar{height:8px;border-radius:5px;background:var(--line);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--gold)}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);margin:8px 0}
+.chk input{width:auto;min-height:0;margin:0}
+small.muted{color:var(--mut)}
+a{color:inherit}
+.statusline{height:4px;background:var(--line);border-radius:3px;overflow:hidden;margin:4px 0}
+.statusline>i{display:block;height:100%}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<nav id="nav"></nav>
+<dialog id="dlg"></dialog>
+<script>
+/* =========================================================================
+   LEDGER CORE — pure functions, unit-tested in selfTest()
+   ========================================================================= */
+const CATS_DEFAULT=['الأكل والشرب','المواصلات','الأسرة','المنزل','العلاج','الاتصالات','الإنترنت','الملابس','التعليم','السفر','الهدايا','المساعدات','الترفيه','العمل الشخصي','الطوارئ','مشتريات شخصية','أخرى'];
+const SRC=['عمل','تجارة','عمولة','هدية','استرداد مبلغ','دخل آخر'];
+const IMP=['ضروري','مهم','يمكن تأجيله','كمالي'];
+const TL={income:'دخل',expense:'مصروف',transfer:'تحويل',saving:'ادخار',debt:'دين',adjust:'تسوية'};
+
+function validate(S,t){
+  if(!t.acc||!S.accounts.find(a=>a.id===t.acc))return'اختر الحساب';
+  if(t.type==='adjust'){ if(!(Number(t.amount)!==0&&isFinite(Number(t.amount))))return'أدخل مبلغ الفرق'; }
+  else if(!(Number(t.amount)>0))return'المبلغ يجب أن يكون أكبر من صفر';
+  if(t.type==='transfer'||t.type==='saving'){
+    if(!t.to||!S.accounts.find(a=>a.id===t.to))return'اختر الحساب المحوَّل إليه';
+    if(t.to===t.acc)return'لا يمكن التحويل إلى نفس الحساب';
+    const A=S.accounts.find(a=>a.id===t.acc),B=S.accounts.find(a=>a.id===t.to);
+    if(A.cur!==B.cur)return'التحويل بين عملتين مختلفتين غير مدعوم في هذه النسخة — أضف سعر صرف يدويًا بتسجيل عمليتين منفصلتين';
+  }
+  return null;
+}
+function delta(t,accId){
+  const n=Number(t.amount);
+  if(t.type==='income'||t.type==='adjust')return t.acc===accId?n:0;
+  if(t.type==='expense')return t.acc===accId?-n:0;
+  if(t.type==='transfer'||t.type==='saving')return t.acc===accId?-n:(t.to===accId?n:0);
+  return 0;
+}
+function balance(S,id){const a=S.accounts.find(x=>x.id===id);if(!a)return 0;return S.tx.reduce((s,t)=>s+delta(t,id),Number(a.opening));}
+function totals(S){const o={};S.accounts.forEach(a=>o[a.cur]=(o[a.cur]||0)+balance(S,a.id));return o;}
+function periodSum(S,type,prefix,cur){return S.tx.filter(t=>t.type===type&&t.date.startsWith(prefix)&&(S.accounts.find(a=>a.id===t.acc)||{}).cur===cur).reduce((s,t)=>s+Number(t.amount),0);}
+function isDup(S,t){return S.tx.some(x=>x.type===t.type&&x.acc===t.acc&&Number(x.amount)===Number(t.amount)&&x.date===t.date);}
+function addTx(S,t){const e=validate(S,t);if(e)return{error:e};S.tx.push({...t,amount:Number(t.amount),id:'t'+Date.now()+Math.random().toString(36).slice(2,7)});return{ok:true};}
+function recon(S,id,real){return balance(S,id)-Number(real);}
+
+/* self-test harness, run in isolated state — never touches live S */
+function runSelfTest(){
+  const T=fresh();T.accounts=[{id:'b',name:'بنكك',cur:'SDG',opening:1e6},{id:'c',name:'كاش',cur:'SDG',opening:0}];
+  const L=[],ck=(n,c)=>L.push((c?'✓ ':'✗ ')+n);
+  const B=id=>balance(T,id);
+  addTx(T,{type:'income',acc:'b',amount:500000,date:'2026-01-01'});ck('دخل → بنكك 1,500,000',B('b')===1.5e6);
+  addTx(T,{type:'expense',acc:'b',amount:200000,date:'2026-01-02'});ck('مصروف → بنكك 1,300,000',B('b')===1.3e6);
+  addTx(T,{type:'transfer',acc:'b',to:'c',amount:300000,date:'2026-01-03'});
+  ck('تحويل: بنكك 1,000,000 والكاش 300,000',B('b')===1e6&&B('c')===3e5);
+  ck('الإجمالي بلا تغيير 1,300,000',totals(T).SDG===1.3e6);
+  ck('التحويل لم يغيّر الدخل الشهري',periodSum(T,'income','2026-01','SDG')===5e5);
+  ck('التحويل لم يغيّر المصروف الشهري',periodSum(T,'expense','2026-01','SDG')===2e5);
+  ck('فرق مطابقة 10,000 عند رصيد بنكي 990,000',recon(T,'b',990000)===10000);
+  ck('مصروف صفر يُرفض',!!validate(T,{type:'expense',acc:'b',amount:0}));
+  ck('دخل سالب يُرفض',!!validate(T,{type:'income',acc:'b',amount:-5}));
+  ck('تحويل لنفس الحساب يُرفض',!!validate(T,{type:'transfer',acc:'b',to:'b',amount:5}));
+  ck('عملية بدون حساب تُرفض',!!validate(T,{type:'expense',amount:5}));
+  const tid=T.tx.find(t=>t.type==='transfer').id;T.tx=T.tx.filter(t=>t.id!==tid);
+  ck('حذف التحويل يعيد الحسابين',B('b')===1.3e6&&B('c')===0);
+  addTx(T,{type:'income',acc:'b',amount:100,date:'2026-01-04'});
+  const before=B('b');T.tx[T.tx.length-1].amount=50;
+  ck('تعديل عملية يُعاد حسابه بشكل صحيح',B('b')===before-50);
+  return L;
+}
+
+/* =========================================================================
+   STORAGE — IndexedDB, whole state as ONE record, written atomically
+   ========================================================================= */
+/* Storage: IndexedDB when available; silent fallback to localStorage so the
+   app never shows a blank screen on browsers/WebViews that restrict IndexedDB
+   (private mode, some OEM WebViews, file:// in rare cases). */
+let STORAGE_MODE='idb';
+const DB=(typeof indexedDB==='undefined')?Promise.reject(new Error('no-idb')):new Promise((res,rej)=>{
+  try{
+    const r=indexedDB.open('elyamani-money-v2',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('kv');
+    r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);
+  }catch(e){rej(e);}
+});
+DB.catch(()=>{STORAGE_MODE='ls';});
+async function load(){
+  try{
+    const db=await DB;
+    return new Promise(res=>{const q=db.transaction('kv').objectStore('kv').get('state');q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null);});
+  }catch(e){
+    STORAGE_MODE='ls';
+    try{const v=localStorage.getItem('elyamani-money-state');return v?JSON.parse(v):null;}catch(e2){return null;}
+  }
+}
+async function save(){
+  try{
+    const db=await DB;
+    return new Promise((res,rej)=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(JSON.parse(JSON.stringify(S)),'state');t.oncomplete=res;t.onerror=()=>rej(t.error);});
+  }catch(e){
+    STORAGE_MODE='ls';
+    try{localStorage.setItem('elyamani-money-state',JSON.stringify(S));}catch(e2){
+      if(!window.__storageWarned){window.__storageWarned=true;
+        setTimeout(()=>alert('تحذير: تعذّر حفظ البيانات بشكل دائم على هذا المتصفح. قد تُفقد العمليات عند إغلاق التطبيق. جرّب فتح التطبيق من نسخة APK المثبّتة بدلًا من المتصفح، أو فعّل تخزين الموقع في إعدادات المتصفح.'),300);
+      }
+    }
+  }
+}
+const DEFQ=['لن أستسلم أبدًا.','كل يوم خطوة.','الانضباط اليوم راحة غدًا.','أنا أبني مستقبلي بقرارات اليوم.','كل جنيه أحسن إدارته يقربني من هدفي.','الاستمرار أهم من الكمال.','قرار صغير اليوم يصنع فرقًا غدًا.'];
+function fresh(){return{
+  v:2,cur:'SDG',accounts:[],tx:[],cats:[...CATS_DEFAULT],
+  budget:0,budgetCat:{},
+  quotes:DEFQ.map(t=>({t,pin:false,fav:false})),motivation:true,
+  goals:[],debts:[],recurring:[],wishlist:[],avoided:0,
+  pin:null,pinSalt:null,lastSeen:today(),name:'أحمد',notifyReminders:false,
+};}
+
+const $=s=>document.querySelector(s);
+const fmt=n=>Number(n||0).toLocaleString('en-US');
+function today(){return new Date().toISOString().slice(0,10);}
+let S=null,tab='home',locked=false;
+
+function dlg(html){const d=$('#dlg');d.innerHTML=html;d.showModal();return d;}
+function accOpts(sel){return S.accounts.map(a=>`<option value="${a.id}" ${a.id===sel?'selected':''}>${esc(a.name)} (${a.cur})</option>`).join('');}
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function accName(id){return(S.accounts.find(a=>a.id===id)||{}).name||'—';}
+
+/* ---------------------------- RENDER ROOT ---------------------------- */
+function render(){
+  if(locked)return renderLock();
+  if(!S.accounts.length)return onboard();
+  const nav=[['home','الرئيسية'],['acc','حساباتي'],['tx','العمليات'],['more','المزيد']];
+  $('#nav').innerHTML=nav.map(([k,l])=>`<button class="${tab===k?'on':''}" onclick="go('${k}')">${l}</button>`).join('');
+  const views={home,acc,tx,more,rec,budgetV,debtsV,goalsV,reportsV,settingsV,wishV,recurV,privacyV,catsV,importV};
+  $('#app').innerHTML=(views[tab]||home)()+`<button class="fab" onclick="newTx()">+ عملية جديدة</button>`;
+}
+function go(k){tab=k;render();}
+
+/* ---------------------------- LOCK SCREEN ---------------------------- */
+function renderLock(){
+  $('#nav').innerHTML='';
+  $('#app').innerHTML=`<h1>حساباتي مقفلة</h1><p class="mut">أدخل PIN التطبيق (ليس PIN البنك).</p>
+  <input id="lp" type="password" inputmode="numeric" placeholder="PIN" maxlength="12">
+  <div id="le" class="warn" hidden></div>
+  <button onclick="tryUnlock()">دخول</button>`;
+}
+async function sha256(text){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function tryUnlock(){
+  const h=await sha256(S.pinSalt+$('#lp').value);
+  if(h===S.pin){locked=false;render();}
+  else{const e=$('#le');e.hidden=false;e.textContent='PIN غير صحيح.';}
+}
+
+/* ---------------------------- ONBOARDING ---------------------------- */
+function onboard(){
+  $('#nav').innerHTML='';
+  $('#app').innerHTML=`
+  <div class="hero"><div class="brandline"><img src="icon.svg"><span>ELYAMANI</span></div>
+  <h1 style="color:#fff">أهلًا بك في ELYAMANI Money</h1>
+  <p style="opacity:.85">خطوتان فقط: اختر العملة، ثم أضف أول حساب برصيده الحقيقي اليوم. لا نطلب أي بيانات بنكية — كل شيء يُحفظ على جهازك فقط.</p></div>
+  <h2>العملة الأساسية</h2><select id="oc"><option>SDG</option><option>USD</option><option>SAR</option><option>AED</option></select>
+  <h2>أول حساب</h2><label>الاسم</label><input id="on" value="بنكك - بنك الخرطوم">
+  <label>الرصيد الحقيقي الحالي</label><input id="ob" type="number" inputmode="decimal" placeholder="0">
+  <button class="block" onclick="startApp()">ابدأ الاستخدام</button>`;
+}
+async function startApp(){
+  const cur=$('#oc').value,name=$('#on').value.trim(),b=Number($('#ob').value||0);
+  if(!name)return alert('اكتب اسم الحساب');
+  S.cur=cur;
+  S.accounts.push({id:'a'+Date.now(),name,type:'bank',cur,opening:b,note:'',reconDate:null});
+  S.accounts.push({id:'a'+(Date.now()+1),name:'الكاش',type:'cash',cur,opening:0,note:'',reconDate:null});
+  await save();render();
+}
+
+/* ---------------------------- MOTIVATION ---------------------------- */
+function quote(){
+  if(!S.motivation||!S.quotes.length)return'';
+  const pinned=S.quotes.find(q=>q.pin);
+  const pick=pinned||S.quotes[new Date().getDate()%S.quotes.length];
+  return`<h2>كلمة اليوم</h2><div class="card"><div class="motto" style="border-inline-start:3px solid var(--gold);padding-inline-start:10px;font-weight:700">${esc(pick.t)}</div></div>`;
+}
+
+/* ---------------------------- SMART TIPS (local rules, no paid AI) ---------------------------- */
+function smartTips(){
+  const tips=[];const m=today().slice(0,7);
+  const exp=periodSum(S,'expense',m,S.cur);
+  if(S.budget){
+    const p=exp/S.budget*100;
+    if(p>100)tips.push('راجع المصروفات غير الضرورية لبقية الشهر.');
+    else if(p>=80)tips.push(`استخدمت ${Math.round(p)}% من ميزانيتك هذا الشهر.`);
+    else if(exp>0)tips.push('أداء جيد، استمر.');
+  }
+  // category comparison vs previous month
+  const pm=new Date();pm.setMonth(pm.getMonth()-1);const pmPrefix=pm.toISOString().slice(0,7);
+  const byCat=c=>S.tx.filter(t=>t.type==='expense'&&t.cat===c).reduce((acc,t)=>{const mo=t.date.slice(0,7);acc[mo]=(acc[mo]||0)+Number(t.amount);return acc;},{});
+  (S.cats||[]).forEach(c=>{
+    const agg=byCat(c);const cur=agg[m]||0,prev=agg[pmPrefix]||0;
+    if(prev>0&&cur>prev*1.2)tips.push(`مصروف ${c} ارتفع عن الشهر الماضي.`);
+  });
+  const lastTx=[...S.tx].sort((a,b)=>a.date<b.date?1:-1)[0];
+  if(lastTx){const days=Math.floor((Date.now()-new Date(lastTx.date))/864e5);if(days>=3)tips.push('لا تنسَ تحديث مصروفاتك.');}
+  return tips;
+}
+
+/* ---------------------------- HOME ---------------------------- */
+function home(){
+  const T=totals(S),m=today().slice(0,7);
+  const totLine=Object.entries(T).map(([c,v])=>`<div class="big">${fmt(v)} <small class="lbl">${c}</small></div>`).join('');
+  const cur=S.cur;const inc=periodSum(S,'income',m,cur),exp=periodSum(S,'expense',m,cur);
+  const left=S.budget?S.budget-exp:null;
+  const debtsOwedToMe=S.debts.filter(d=>d.kind==='lent').reduce((s,d)=>s+(Number(d.amount)-Number(d.paid)),0);
+  const debtsIOwe=S.debts.filter(d=>d.kind==='owe').reduce((s,d)=>s+(Number(d.amount)-Number(d.paid)),0);
+  const last=[...S.tx].sort((a,b)=>a.date<b.date?1:-1).slice(0,5).map(txRow).join('')||'<p class="mut">لا توجد عمليات بعد. اضغط «+ عملية جديدة».</p>';
+  const cards=S.accounts.slice(0,4).map(a=>`<div class="card"><div class="mut">${esc(a.name)}</div><div class="num">${fmt(balance(S,a.id))} <small class="lbl">${a.cur}</small></div></div>`).join('');
+  const tips=smartTips();
+  return`
+  <div class="hero">
+    <div class="brandline"><img src="icon.svg"><span>ELYAMANI</span></div>
+    <div class="lbl">السلام عليكم${S.name?' '+esc(S.name):''}</div>
+    <div class="motto">لن أستسلم أبدًا</div>
+    <div class="lbl" style="margin-top:10px">إجمالي أموالي</div>
+    ${totLine}
+  </div>
+  <div class="grid2">${cards}</div>
+  <h2>هذا الشهر</h2>
+  <div class="card row"><span>دخل الشهر</span><span class="num in">${fmt(inc)}</span></div>
+  <div class="card row"><span>مصروف الشهر</span><span class="num out">${fmt(exp)}</span></div>
+  <div class="card row"><span>باقي الميزانية</span><span class="num">${left===null?'لم تحدد بعد':fmt(left)}</span></div>
+  <div class="card row"><span>ديون لي</span><span class="num in">${fmt(debtsOwedToMe)}</span></div>
+  <div class="card row"><span>ديون عليّ</span><span class="num out">${fmt(debtsIOwe)}</span></div>
+  ${tips.length?`<h2>ملاحظات</h2>`+tips.map(t=>`<div class="card mut">${esc(t)}</div>`).join(''):''}
+  <h2>آخر العمليات</h2>${last}
+  ${quote()}`;
+}
+
+/* ---------------------------- TX ROW / LIST ---------------------------- */
+function txRow(t){
+  const cls=t.type==='income'||(t.type==='adjust'&&t.amount>0)?'in':(t.type==='transfer'||t.type==='saving')?'':'out';
+  const sub=(t.type==='transfer'||t.type==='saving')?`${accName(t.acc)} ← ${accName(t.to)}`:`${accName(t.acc)}${t.cat?' · '+esc(t.cat):''}`;
+  return`<div class="card row"><div><b>${TL[t.type]}</b> <span class="mut">${t.date}</span><div class="mut">${sub}${t.note?' — '+esc(t.note):''}</div></div>
+  <div style="text-align:left"><span class="num ${cls}">${fmt(t.amount)}</span><br>
+  <button class="s" style="padding:3px 9px;min-height:0;font-size:12px" onclick="editTx('${t.id}')">تعديل</button>
+  <button class="s" style="padding:3px 9px;min-height:0;font-size:12px" onclick="delTx('${t.id}')">حذف</button></div></div>`;
+}
+function tx(){
+  const list=[...S.tx].sort((a,b)=>a.date<b.date?1:-1);
+  return`<h1>العمليات</h1>`+(list.map(txRow).join('')||'<p class="mut">لا توجد عمليات.</p>');
+}
+async function delTx(id){
+  if(!confirm('حذف هذه العملية؟ سيُعاد حساب الرصيد تلقائيًا.'))return;
+  S.tx=S.tx.filter(t=>t.id!==id);await save();render();
+}
+function editTx(id){const t=S.tx.find(x=>x.id===id);if(!t)return;newTx(t.type,t);}
+
+/* ---------------------------- ACCOUNTS ---------------------------- */
+function acc(){
+  const T=totals(S);
+  return`<h1>حساباتي</h1>`+
+  S.accounts.map(a=>`<div class="card"><div class="row"><div><b>${esc(a.name)}</b><div class="mut">${a.cur}${a.reconDate?' · آخر مطابقة '+a.reconDate:''}</div></div>
+  <div class="num">${fmt(balance(S,a.id))}</div></div>
+  <div class="row" style="margin-top:6px"><button class="s" style="padding:5px 10px;min-height:0;font-size:12.5px" onclick="editAcc('${a.id}')">تعديل</button>
+  <button class="s" style="padding:5px 10px;min-height:0;font-size:12.5px" onclick="delAcc('${a.id}')">حذف</button></div></div>`).join('')+
+  `<h2>أموالي وين؟</h2><div class="card">${Object.entries(T).map(([c,v])=>`<div class="row"><span>الإجمالي (${c})</span><b class="num">${fmt(v)}</b></div>`).join('')}<div class="mut">كل عملة تُعرض منفصلة لتجنب خلط العملات.</div></div>
+  <button class="s block" onclick="newAcc()">+ إضافة حساب</button>`;
+}
+function newAcc(){
+  dlg(`<h2>حساب جديد</h2><label>الاسم</label><input id="an" placeholder="مثال: بنك فيصل">
+  <label>النوع</label><select id="at"><option value="bank">بنك</option><option value="cash">كاش</option><option value="wallet">محفظة</option><option value="savings">ادخار</option><option value="emergency">صندوق طوارئ</option><option value="other">أخرى</option></select>
+  <label>العملة</label><select id="ac"><option>SDG</option><option>USD</option><option>SAR</option><option>AED</option></select>
+  <label>الرصيد الافتتاحي</label><input id="ao" type="number" inputmode="decimal" value="0">
+  <label>ملاحظات</label><input id="anote">
+  <div class="row"><button onclick="saveAcc()">حفظ</button><button class="s" onclick="$('#dlg').close()">إلغاء</button></div>`);
+}
+async function saveAcc(){
+  const n=$('#an').value.trim();if(!n)return alert('اكتب اسم الحساب');
+  S.accounts.push({id:'a'+Date.now(),name:n,type:$('#at').value,cur:$('#ac').value,opening:Number($('#ao').value||0),note:$('#anote').value,reconDate:null});
+  await save();$('#dlg').close();render();
+}
+function editAcc(id){
+  const a=S.accounts.find(x=>x.id===id);if(!a)return;
+  dlg(`<h2>تعديل حساب</h2><label>الاسم</label><input id="an" value="${esc(a.name)}">
+  <label>ملاحظات</label><input id="anote" value="${esc(a.note||'')}">
+  <div class="row"><button onclick="saveEditAcc('${id}')">حفظ</button><button class="s" onclick="$('#dlg').close()">إلغاء</button></div>`);
+}
+async function saveEditAcc(id){
+  const a=S.accounts.find(x=>x.id===id);a.name=$('#an').value.trim()||a.name;a.note=$('#anote').value;
+  await save();$('#dlg').close();render();
+}
+async function delAcc(id){
+  if(S.tx.some(t=>t.acc===id||t.to===id))return alert('لا يمكن حذف حساب له عمليات مسجلة. احذف العمليات أولًا أو اترك الحساب.');
+  if(!confirm('حذف هذا الحساب؟'))return;
+  S.accounts=S.accounts.filter(a=>a.id!==id);await save();render();
+}
+
+/* ---------------------------- NEW / EDIT TX ---------------------------- */
+let curType='expense',editingId=null;
+function newTx(type,existing){
+  curType=type||curType;editingId=existing?existing.id:null;
+  const t=curType,isT=(t==='transfer'||t==='saving');
+  const e=existing||{};
+  dlg(`<h2>${editingId?'تعديل عملية':'عملية جديدة'}</h2>
+  <div class="seg">${['expense','income','transfer','saving','debt','adjust'].map(k=>`<button class="${k===t?'':'s'}" onclick="newTx('${k}')">${TL[k]}</button>`).join('')}</div>
+  ${t==='debt'?debtForm(e):`
+  <label>${t==='adjust'?'مبلغ الفرق (سالب للنقص)':'المبلغ'}</label><input id="tm" type="number" inputmode="decimal" value="${e.amount??''}">
+  <label>${isT?'من حساب':'الحساب'}</label><select id="ta">${accOpts(e.acc)}</select>
+  ${isT?`<label>${t==='saving'?'إلى حساب الادخار':'إلى حساب'}</label><select id="tt">${accOpts(e.to||(S.accounts[1]&&S.accounts[1].id))}</select>`:''}
+  ${t==='expense'?`<label>التصنيف</label><select id="tc">${S.cats.map(c=>`<option ${c===e.cat?'selected':''}>${c}</option>`).join('')}</select>
+  <label>طريقة الدفع</label><select id="tpm"><option>نقدًا</option><option>تحويل بنكي</option><option>محفظة إلكترونية</option><option>بطاقة</option></select>
+  <label>مدى الأهمية</label><select id="ti">${IMP.map(i=>`<option ${i===e.imp?'selected':''}>${i}</option>`).join('')}</select>`:''}
+  ${t==='income'?`<label>المصدر</label><select id="tc">${SRC.map(c=>`<option ${c===e.cat?'selected':''}>${c}</option>`).join('')}</select>`:''}
+  <label>التاريخ</label><input id="td" type="date" value="${e.date||today()}">
+  <label>ملاحظة (اختياري)</label><input id="tn" value="${esc(e.note||'')}">
+  <div id="te" class="warn" hidden></div>
+  <div class="row"><button onclick="saveTx()">حفظ</button>${editingId?`<button class="d" onclick="delTx('${editingId}');$('#dlg').close()">حذف</button>`:''}<button class="s" onclick="$('#dlg').close()">إلغاء</button></div>`}`);
+}
+let dupOk=false;
+async function saveTx(){
+  if(curType==='debt')return saveDebtFromForm();
+  const t={type:curType,amount:$('#tm').value,acc:$('#ta').value,to:$('#tt')&&$('#tt').value,
+    cat:$('#tc')&&$('#tc').value,pm:$('#tpm')&&$('#tpm').value,imp:$('#ti')&&$('#ti').value,
+    date:$('#td').value||today(),note:$('#tn').value};
+  const err=validate(S,t);const box=$('#te');
+  if(err){box.hidden=false;box.textContent=err;return;}
+  if(editingId){
+    if(!dupOk&&(t.type==='expense'||t.type==='transfer')&&Number(t.amount)>balance(S,t.acc)+Number(S.tx.find(x=>x.id===editingId).amount)){
+      box.hidden=false;box.textContent='المبلغ أكبر من الرصيد المتاح. اضغط «حفظ» مرة أخرى للمتابعة.';dupOk=true;return;
+    }
+    dupOk=false;
+    const i=S.tx.findIndex(x=>x.id===editingId);S.tx[i]={...S.tx[i],...t,amount:Number(t.amount)};
+    await save();$('#dlg').close();editingId=null;render();return;
+  }
+  if(!dupOk&&isDup(S,t)){box.hidden=false;box.textContent='توجد عملية مشابهة (نفس المبلغ والحساب واليوم). اضغط «حفظ» مرة أخرى إن كانت عملية جديدة.';dupOk=true;return;}
+  if((t.type==='expense'||t.type==='transfer')&&Number(t.amount)>balance(S,t.acc)&&!dupOk){box.hidden=false;box.textContent='المبلغ أكبر من رصيد الحساب. اضغط «حفظ» مرة أخرى للمتابعة.';dupOk=true;return;}
+  dupOk=false;addTx(S,t);await save();
+  const m=t.date.slice(0,7);$('#dlg').close();render();
+  if(t.type==='expense'&&S.budget){const ex=periodSum(S,'expense',m,S.cur);if(ex>S.budget)setTimeout(()=>alert('تجاوزت ميزانية الشهر. راجع المصروفات غير الضرورية لبقية الشهر.'),50);}
+}
+
+/* ---------------------------- RECONCILIATION ---------------------------- */
+function rec(){
+  return`<h1>مطابقة الحساب</h1><p class="mut">قارن رصيد البرنامج برصيدك الظاهر في البنك. لا نتصل بالبنك ولا نطلب أي بيانات دخول (لا PIN ولا OTP ولا كلمة مرور).</p>
+  <label>الحساب</label><select id="ra" onchange="showRec()">${accOpts()}</select>
+  <label>الرصيد الحقيقي الظاهر في البنك</label><input id="rr" type="number" inputmode="decimal" oninput="showRec()">
+  <div id="rs"></div>`;
+}
+function showRec(){
+  const id=$('#ra').value,v=$('#rr').value;
+  if(v===''){$('#rs').innerHTML=`<div class="card">رصيد البرنامج: <b class="num">${fmt(balance(S,id))}</b></div>`;return;}
+  const d=recon(S,id,v),p=balance(S,id);
+  $('#rs').innerHTML=`<div class="card">رصيد البرنامج: <b class="num">${fmt(p)}</b><br>الرصيد الحقيقي: <b class="num">${fmt(v)}</b><br>`+
+  (d===0?`<b class="in">الحساب مطابق ✓</b>`:`<b class="out">يوجد فرق بمبلغ ${fmt(Math.abs(d))}</b>
+  <p class="mut">أسباب محتملة: عملية غير مسجلة · رسوم بنك · سحب · إيداع · تحويل · عملية مكررة · مبلغ خاطئ · شراء لم يُسجل · أخرى.</p>
+  <button onclick="doAdjust('${id}',${-d})">سجّل تسوية بمبلغ الفرق</button>`)+`</div>`;
+}
+async function doAdjust(id,amt){
+  if(!confirm('سيُسجَّل الفرق كعملية «تسوية» لمطابقة الرصيد. متابعة؟'))return;
+  addTx(S,{type:'adjust',acc:id,amount:amt,date:today(),note:'تسوية مطابقة'});
+  const a=S.accounts.find(x=>x.id===id);a.reconDate=today();
+  await save();render();
+}
+
+/* ---------------------------- MORE MENU ---------------------------- */
+function more(){
+  const items=[['budgetV','ميزانية الشهر'],['debtsV','الديون'],['goalsV','أهدافي والادخار'],
+  ['rec','مطابقة الحساب'],['recurV','المصروفات المتكررة'],['wishV','أفكر أشتري'],
+  ['reportsV','التقارير'],['catsV','التصنيفات'],['importV','استيراد كشف حساب'],
+  ['settingsV','الإعدادات'],['privacyV','الخصوصية']];
+  return`<h1>المزيد</h1>`+items.map(([k,l])=>`<button class="s block" onclick="go('${k}')">${l}</button>`).join('');
+}
+
+/* ---------------------------- BUDGET ---------------------------- */
+function budgetV(){
+  const m=today().slice(0,7),exp=periodSum(S,'expense',m,S.cur);
+  const p=S.budget?Math.min(100,Math.round(exp/S.budget*100)):0;
+  const catRows=S.cats.map(c=>{
+    const b=S.budgetCat[c]||0;if(!b)return'';
+    const e=S.tx.filter(t=>t.type==='expense'&&t.cat===c&&t.date.startsWith(m)).reduce((s,t)=>s+Number(t.amount),0);
+    const pc=Math.min(100,Math.round(e/b*100));
+    return`<div class="card"><div class="row"><span>${esc(c)}</span><span class="num">${fmt(e)} / ${fmt(b)}</span></div><div class="bar"><i style="width:${pc}%"></i></div></div>`;
+  }).join('');
+  return`<h1>ميزانية الشهر</h1>
+  <label>الميزانية الكلية (${S.cur})</label><input type="number" inputmode="decimal" value="${S.budget||''}" onchange="setBudget(this.value)">
+  <div class="card"><div class="row"><span>المصروف</span><span class="num out">${fmt(exp)}</span></div>
+  <div class="row"><span>المتبقي</span><span class="num">${fmt((S.budget||0)-exp)}</span></div>
+  <div class="row"><span>الاستخدام</span><span class="num">${p}%</span></div>
+  <div class="bar"><i style="width:${p}%"></i></div></div>
+  <h2>ميزانية كل تصنيف</h2>
+  ${catRows||'<p class="mut">لم تحدد ميزانية لأي تصنيف بعد.</p>'}
+  <button class="s block" onclick="setCatBudget()">تحديد ميزانية تصنيف</button>`;
+}
+async function setBudget(v){S.budget=Number(v||0);await save();}
+function setCatBudget(){
+  dlg(`<h2>ميزانية تصنيف</h2><label>التصنيف</label><select id="bc">${S.cats.map(c=>`<option>${c}</option>`).join('')}</select>
+  <label>المبلغ الشهري</label><input id="bv" type="number" inputmode="decimal">
+  <div class="row"><button onclick="saveCatBudget()">حفظ</button><button class="s" onclick="$('#dlg').close()">إلغاء</button></div>`);
+}
+async function saveCatBudget(){S.budgetCat[$('#bc').value]=Number($('#bv').value||0);await save();$('#dlg').close();render();}
+
+/* ---------------------------- DEBTS ---------------------------- */
+function debtsV(){
+  const rows=S.debts.map(d=>{
+    const rem=Number(d.amount)-Number(d.paid);
+    const st=rem<=0?'مدفوع':(Number(d.paid)>0?'جزئي':'غير مدفوع');
+    return`<div class="card"><div class="row"><b>${esc(d.person)}</b><span class="pill">${d.kind==='lent'?'لي':'عليّ'}</span></div>
+    <div class="mut">${esc(d.reason||'')}${d.due?' · استحقاق '+d.due:''}</div>
+    <div class="row"><span>المبلغ: ${fmt(d.amount)}</span><span>المدفوع: ${fmt(d.paid)}</span></div>
+    <div class="row"><b>المتبقي: ${fmt(rem)}</b><span class="mut">${st}</span></div>
+    <div class="row" style="margin-top:6px"><button class="s" style="padding:5px 10px;min-height:0;font-size:12.5px" onclick="payDebt('${d.id}')">تسجيل دفعة</button>
+    <button class="s" style="padding:5px 10px;min-height:0;font-size:12.5px" onclick="delDebt('${d.id}')">حذف</button></div></div>`;
+  }).join('');
+  return`<h1>الديون</h1>${rows||'<p class="mut">لا توجد ديون مسجلة.</p>'}<button class="s block" onclick="newDebt()">+ دين جديد</button>`;
+}
+function debtForm(e){
+  return`<label>نوع الدين</label><select id="dk"><option value="lent" ${e.kind==='lent'?'selected':''}>لي عند شخص</option><option value="owe" ${e.kind==='owe'?'selected':''}>عليّ لشخص</option></select>
+  <label>اسم الشخص</label><input id="dp" value="${esc(e.person||'')}">
+  <label>المبلغ</label><input id="da" type="number" inputmode="decimal" value="${e.amount||''}">
+  <label>السبب</label><input id="dr" value="${esc(e.reason||'')}">
+  <label>تاريخ الاستحقاق (اختياري)</label><input id="dd" type="date" value="${e.due||''}">
+  <label>ملاحظة</label><input id="dn" value="${esc(e.note||'')}">`;
+}
+function newDebt(){curType='debt';editingId=null;dlg(`<h2>دين جديد</h2>${debtForm({})}<div class="row"><button onclick="saveDebtFromForm()">حفظ</button><button class="s" onclick="$('#dlg').close()">إلغاء</button></div>`);}
+async function saveDebtFromForm(){
+  const amt=Number($('#da').value||0);if(!(amt>0))return alert('أدخل مبلغًا صحيحًا');
+  const p=$('#dp').value.trim();if(!p)return alert('اكتب اسم الشخص');
+  S.debts.push({id:'d'+Date.now(),kind:$('#dk').value,person:p,amount:amt,paid:0,date:today(),reason:$('#dr').value,due:$('#dd').value,note:$('#dn').value});
+  await save();$('#dlg').close();render();
+}
+function payDebt(id){
+  const d=S.debts.find(x=>x.id===id);
+  dlg(`<h2>تسجيل دفعة</h2><p class="mut">المتبقي: ${fmt(Number(d.amount)-Number(d.paid))}</p>
+  <label>المبلغ المدفوع الآن</label><input id="pv" type="number" inputmode="decimal">
+  <div class="row"><button onclick="savePay('${id}')">حفظ</button><button class="s" onclick="$('#dlg').close()">إلغاء</button></div>`);
+}
+async function savePay(id){
+  const d=S.debts.find(x=>x.id===id);const v=Number($('#pv').value||0);
+  if(v<=0)return alert('أدخل مبلغًا صحيحًا');
+  d.paid=Math.min(Number(d.amount),Number(d.paid)+v);
+  await save();$('#dlg').close();render();
+}
+async function delDebt(id){if(!confirm('حذف هذا الدين؟'))return;S.debts=S.debts.filter(d=>d.id!==id);await save();render();}
+
+/* ---------------------------- GOALS / EMERGENCY FUND ---------------------------- */
+function goalsV(){
+  const rows=S.goals.map(g=>{
+    const pct=g.target?Math.min(100,Math.round(g.saved/g.target*100)):0;
+    return`<div class="card"><div class="row"><b>${esc(g.name)}</b><span class="num">${pct}%</span></div>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="row mut"><span>تم توفير ${fmt(g.saved)}</span><span>الهدف ${fmt(g.target)}</span></div>
+    <div class="row" style="margin-top:6px"><button class="s" style="padding:5px 10px;min-height:0;font-size:12.5px" onclick="addToGoal('${g.id}')">إضافة مبلغ</button>
+    <button class="s" style="padding:5px 10px;min-height:0;font-size:12.5px" onclick="delGoal('${g.id}')">حذف</button></div></div>`;
+  }).join('');
+  return`<h1>أهدافي</h1>${rows||'<p class="mut">لا توجد أهداف بعد.</p>'}<button class="s block" onclick="newGoal()">+ هدف جديد</button>
+  <p class="mut">ملاحظة: نقل المال إلى هدف/صندوق طوارئ عبر تحويل بين حساباتك لا يُحتسب مصروفًا.</p>`;
+}
+function newGoal(){dlg(`<h2>هدف جديد</h2><label>اسم الهدف</label><input id="gn" value="صندوق الطوارئ">
+  <label>المبلغ المطلوب</label><input id="gt" type="number" inputmode="decimal">
+  <div class="row"><button onclick="saveGoal()">حفظ</button><button class="s" onclick="$('#dlg').close()">إلغاء</button></div>`);}
+async function saveGoal(){
+  const n=$('#gn').value.trim(),t=Number($('#gt').value||0);if(!n||!(t>0))return alert('أكمل البيانات');
+  S.goals.push({id:'g'+Date.now(),name:n,target:t,saved:0});await save();$('#dlg').close();render();
+}
+function addToGoal(id){dlg(`<h2>إضافة إلى الهدف</h2><label>المبلغ</label><input id="gv" type="number" inputmode="decimal">
+  <div class="row"><button onclick="saveAddGoal('${id}')">حفظ</button><button class="s" onclick="$('#dlg').close()">إلغاء</button></div>`);}
+async function saveAddGoal(id){const g=S.goals.find(x=>x.id===id);g.saved+=Number($('#gv').value||0);await save();$('#dlg').close();render();}
+async function delGoal(id){if(!confirm('حذف هذا الهدف؟'))return;S.goals=S.goals.filter(g=>g.id!==id);await save();render();}
+
+/* ---------------------------- WISHLIST / 24h RULE ---------------------------- */
+function wishV(){
+  const now=Date.now();
+  const rows=S.wishlist.map(w=>{
+    const ready=now-w.ts>=86400000;
+    return`<div class="card"><div class="row"><b>${esc(w.name)}</b><span class="num">${fmt(w.price)}</span></div>
+    <div class="mut">${esc(w.reason||'')} — ${w.necessary?'ضروري':'غير ضروري'}</div>
+    ${w.necessary?'':(ready?`<div class="row" style="margin-top:6px"><button class="s" style="padding:5px 10px;min-height:0;font-size:12.5px" onclick="wishDecide('${w.id}',true)">ما زلت أريده</button>
+      <button class="s" style="padding:5px 10px;min-height:0;font-size:12.5px" onclick="wishDecide('${w.id}',false)">لا، تجنبت الشراء</button></div>`
+      :`<p class="mut">انتظر 24 ساعة قبل اتخاذ القرار.</p>`)}</div>`;
+  }).join('');
+  return`<h1>أفكر أشتري</h1><div class="card row"><span>مال تجنبت صرفه</span><span class="num in">${fmt(S.avoided)}</span></div>
+  ${rows||'<p class="mut">لا توجد عناصر.</p>'}<button class="s block" onclick="newWish()">+ إضافة شيء أفكر في شرائه</button>`;
+}
+function newWish(){
+  dlg(`<h2>أفكر أشتري</h2><label>اسم الشيء</label><input id="wn">
+  <label>السعر</label><input id="wp" type="number" inputmode="decimal">
+  <label>سبب الشراء</label><input id="wr">
+  <label class="chk"><input type="checkbox" id="wnec"> هذا الشيء ضروري</label>
+  <div class="row"><button onclick="saveWish()">حفظ</button><button class="s" onclick="$('#dlg').close()">إلغاء</button></div>`);
+}
+async function saveWish(){
+  const n=$('#wn').value.trim();if(!n)return alert('اكتب اسم الشيء');
+  S.wishlist.push({id:'w'+Date.now(),name:n,price:Number($('#wp').value||0),reason:$('#wr').value,necessary:$('#wnec').checked,ts:Date.now()});
+  await save();$('#dlg').close();render();
+}
+async function wishDecide(id,keep){
+  const w=S.wishlist.find(x=>x.id===id);
+  if(!keep)S.avoided+=Number(w.price);
+  S.wishlist=S.wishlist.filter(x=>x.id!==id);
+  await save();render();
+}
+
+/* ---------------------------- RECURRING / REMINDERS ---------------------------- */
+function recurV(){
+  const rows=S.recurring.map(r=>`<div class="card"><div class="row"><b>${esc(r.name)}</b><span class="num">${fmt(r.amount)}</span></div>
+  <div class="mut">يوم ${r.day} من كل شهر · ${esc(r.cat||'')}</div>
+  <button class="s" style="padding:5px 10px;min-height:0;font-size:12.5px;margin-top:6px" onclick="delRecur('${r.id}')">حذف</button></div>`).join('');
+  return`<h1>المصروفات المتكررة</h1><p class="mut">تذكير محلي على جهازك فقط — بدون أي خدمة إشعارات مدفوعة. لتذكير فعلي خارج التطبيق على أندرويد، فعّل الإشعارات هنا (أو ثبّت نسخة APK لتذكير أقوى عبر Local Notifications، مذكور في تعليمات البناء).</p>
+  <button class="s block" onclick="enableReminders()">${S.notifyReminders?'✓ الإشعارات مفعّلة':'تفعيل إشعارات التذكير'}</button>
+  ${rows||'<p class="mut">لا توجد مصروفات متكررة.</p>'}<button class="s block" onclick="newRecur()">+ إضافة مصروف متكرر</button>`;
+}
+function newRecur(){
+  dlg(`<h2>مصروف متكرر</h2><label>الاسم</label><input id="rn" placeholder="الإنترنت، الإيجار...">
+  <label>المبلغ</label><input id="ra2" type="number" inputmode="decimal">
+  <label>يوم الشهر</label><input id="rd" type="number" min="1" max="28" value="1">
+  <label>التصنيف</label><select id="rc">${S.cats.map(c=>`<option>${c}</option>`).join('')}</select>
+  <div class="row"><button onclick="saveRecur()">حفظ</button><button class="s" onclick="$('#dlg').close()">إلغاء</button></div>`);
+}
+async function saveRecur(){
+  const n=$('#rn').value.trim();if(!n)return alert('اكتب الاسم');
+  S.recurring.push({id:'r'+Date.now(),name:n,amount:Number($('#ra2').value||0),day:Number($('#rd').value||1),cat:$('#rc').value});
+  await save();$('#dlg').close();render();
+}
+async function delRecur(id){S.recurring=S.recurring.filter(r=>r.id!==id);await save();render();}
+function checkRecurringReminders(){
+  if(typeof Notification==='undefined')return;
+  const d=new Date().getDate();
+  const due=S.recurring.filter(r=>r.day===d);
+  if(due.length&&Notification.permission==='granted'){
+    due.forEach(r=>{try{new Notification('تذكير: '+r.name,{body:`مبلغ متكرر مستحق اليوم: ${fmt(r.amount)} ${S.cur}`});}catch(e){}});
+  }
+}
+async function enableReminders(){
+  if(typeof Notification==='undefined'){alert('هذا المتصفح/الجهاز لا يدعم إشعارات الويب. افتح التطبيق يوميًا لمتابعة التذكيرات داخل الصفحة الرئيسية بدلًا من ذلك.');return;}
+  try{
+    const p=await Notification.requestPermission();
+    S.notifyReminders=(p==='granted');await save();render();
+    if(p!=='granted')alert('لم يُسمح بالإشعارات. يمكنك تفعيلها لاحقًا من إعدادات المتصفح.');
+  }catch(e){alert('تعذّر طلب إذن الإشعارات على هذا الجهاز.');}
+}
+
+/* ---------------------------- CATEGORIES ---------------------------- */
+function catsV(){
+  const rows=S.cats.map((c,i)=>`<div class="card row"><span>${esc(c)}</span><button class="s" style="padding:4px 10px;min-height:0" onclick="delCat(${i})">حذف</button></div>`).join('');
+  return`<h1>التصنيفات</h1>${rows}
+  <div class="row"><input id="ncat" placeholder="تصنيف جديد"><button onclick="addCat()">إضافة</button></div>`;
+}
+async function addCat(){const v=$('#ncat').value.trim();if(!v)return;S.cats.push(v);await save();render();}
+async function delCat(i){S.cats.splice(i,1);await save();render();}
+
+/* ---------------------------- CSV IMPORT ---------------------------- */
+function importV(){
+  return`<h1>استيراد كشف حساب</h1><p class="mut">ارفع ملف CSV. سيُعرض معاينة قبل الحفظ، ويمكنك تحديد الأعمدة يدويًا إن لزم. لا تُستورد أي عملية تلقائيًا بدون مراجعتك.</p>
+  <input type="file" id="impf" accept=".csv">
+  <label>الحساب المستهدف</label><select id="impacc">${accOpts()}</select>
+  <button onclick="parseImport()">معاينة</button>
+  <div id="impPreview"></div>`;
+}
+let importRows=[];
+function parseImport(){
+  const f=$('#impf').files[0];if(!f)return alert('اختر ملفًا');
+  const r=new FileReader();
+  r.onload=()=>{
+    const text=r.result;const lines=text.split(/\r?\n/).filter(l=>l.trim());
+    if(!lines.length)return alert('الملف فارغ');
+    const headers=lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+    const guess={date:headers.findIndex(h=>/date|تاريخ/i.test(h)),desc:headers.findIndex(h=>/desc|وصف|reference/i.test(h)),
+      debit:headers.findIndex(h=>/debit|مدين|سحب/i.test(h)),credit:headers.findIndex(h=>/credit|دائن|إيداع/i.test(h)),
+      amount:headers.findIndex(h=>/amount|مبلغ/i.test(h))};
+    importRows=lines.slice(1).map(l=>l.split(',').map(c=>c.trim().replace(/^"|"$/g,'')));
+    renderImportPreview(headers,guess);
+  };
+  r.readAsText(f,'utf-8');
+}
+function renderImportPreview(headers,guess){
+  const colOpts=i=>headers.map((h,idx)=>`<option value="${idx}" ${idx===i?'selected':''}>${esc(h)}</option>`).join('')+`<option value="-1">لا يوجد</option>`;
+  const unclear=guess.date<0||(guess.debit<0&&guess.credit<0&&guess.amount<0);
+  $('#impPreview').innerHTML=`
+  ${unclear?'<div class="warn">تعذر اكتشاف الأعمدة تلقائيًا بثقة. حدد الأعمدة يدويًا قبل المتابعة.</div>':''}
+  <label>عمود التاريخ</label><select id="colDate">${colOpts(guess.date)}</select>
+  <label>عمود الوصف</label><select id="colDesc">${colOpts(guess.desc)}</select>
+  <label>عمود مدين (سحب)</label><select id="colDebit">${colOpts(guess.debit)}</select>
+  <label>عمود دائن (إيداع)</label><select id="colCredit">${colOpts(guess.credit)}</select>
+  <label>أو عمود مبلغ واحد (سالب=مصروف)</label><select id="colAmount">${colOpts(guess.amount)}</select>
+  <table style="width:100%;font-size:13px;border-collapse:collapse">${importRows.slice(0,8).map(r=>`<tr>${r.map(c=>`<td style="border-bottom:1px solid var(--line);padding:3px">${esc(c)}</td>`).join('')}</tr>`).join('')}</table>
+  <p class="mut">تُعرض أول 8 صفوف فقط للمعاينة. الإجمالي: ${importRows.length} عملية.</p>
+  <button onclick="commitImport()">استيراد العمليات بعد المراجعة</button>`;
+}
+async function commitImport(){
+  const cd=Number($('#colDate').value),cdesc=Number($('#colDesc').value),cdeb=Number($('#colDebit').value),ccred=Number($('#colCredit').value),camt=Number($('#colAmount').value);
+  if(cd<0)return alert('حدد عمود التاريخ');
+  const acc=$('#impacc').value;let added=0,skipped=0;
+  importRows.forEach(r=>{
+    const date=r[cd];if(!date)return;
+    let amt=0,type='expense';
+    if(cdeb>=0&&r[cdeb]){amt=Math.abs(Number(r[cdeb].replace(/,/g,''))||0);type='expense';}
+    else if(ccred>=0&&r[ccred]){amt=Math.abs(Number(r[ccred].replace(/,/g,''))||0);type='income';}
+    else if(camt>=0&&r[camt]){const v=Number(r[camt].replace(/,/g,''))||0;amt=Math.abs(v);type=v<0?'expense':'income';}
+    if(!(amt>0))return;
+    const note=cdesc>=0?r[cdesc]:'';
+    const t={type,acc,amount:amt,date,note,cat:type==='expense'?'أخرى':'دخل آخر'};
+    if(isDup(S,t)){skipped++;return;}
+    const res=addTx(S,t);if(res.ok)added++;
+  });
+  await save();alert(`تم استيراد ${added} عملية. تم تجاوز ${skipped} عملية مكررة محتملة.`);render();
+}
+
+/* ---------------------------- REPORTS ---------------------------- */
+function reportsV(){
+  return`<h1>التقارير</h1>
+  <div class="seg"><button class="s" onclick="renderReport('day')">اليوم</button><button class="s" onclick="renderReport('week')">الأسبوع</button>
+  <button class="s" onclick="renderReport('month')">الشهر</button><button class="s" onclick="renderReport('year')">السنة</button></div>
+  <div id="repOut"></div>`;
+}
+function periodRange(kind){
+  const now=new Date();let from;
+  if(kind==='day')from=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  else if(kind==='week'){from=new Date(now);from.setDate(now.getDate()-7);}
+  else if(kind==='month')from=new Date(now.getFullYear(),now.getMonth(),1);
+  else from=new Date(now.getFullYear(),0,1);
+  return from.toISOString().slice(0,10);
+}
+function renderReport(kind){
+  const from=periodRange(kind);
+  const inRange=S.tx.filter(t=>t.date>=from);
+  const inc=inRange.filter(t=>t.type==='income').reduce((s,t)=>s+Number(t.amount),0);
+  const exp=inRange.filter(t=>t.type==='expense').reduce((s,t)=>s+Number(t.amount),0);
+  const sav=inRange.filter(t=>t.type==='saving').reduce((s,t)=>s+Number(t.amount),0);
+  const byCat={};inRange.filter(t=>t.type==='expense').forEach(t=>byCat[t.cat]=(byCat[t.cat]||0)+Number(t.amount));
+  const top=Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
+  const biggest=[...inRange.filter(t=>t.type==='expense')].sort((a,b)=>b.amount-a.amount).slice(0,3);
+  const days=Math.max(1,Math.round((Date.now()-new Date(from))/864e5));
+  const avgDay=exp/days;
+  $('#repOut').innerHTML=`
+  <div class="card row"><span>الدخل</span><span class="num in">${fmt(inc)}</span></div>
+  <div class="card row"><span>المصروف</span><span class="num out">${fmt(exp)}</span></div>
+  <div class="card row"><span>الادخار</span><span class="num">${fmt(sav)}</span></div>
+  <div class="card row"><span>صافي التدفق</span><span class="num">${fmt(inc-exp)}</span></div>
+  <div class="card row"><span>أكثر بند صرفًا</span><span>${top?esc(top[0])+' ('+fmt(top[1])+')':'—'}</span></div>
+  <div class="card row"><span>متوسط المصروف اليومي</span><span class="num">${fmt(Math.round(avgDay))}</span></div>
+  <h2>أكبر المصروفات</h2>${biggest.map(t=>`<div class="card row"><span>${esc(t.cat||'')} — ${t.date}</span><span class="num out">${fmt(t.amount)}</span></div>`).join('')||'<p class="mut">لا توجد.</p>'}`;
+}
+
+/* ---------------------------- SETTINGS ---------------------------- */
+function settingsV(){
+  return`<h1>الإعدادات</h1>
+  <h2>الاسم في الترحيب</h2>
+  <input id="unm" value="${esc(S.name||'')}" placeholder="اسمك" onchange="setName(this.value)">
+  <h2>كلمة اليوم</h2>
+  <label class="chk"><input type="checkbox" ${S.motivation?'checked':''} onchange="toggleMotivation(this.checked)"> إظهار كلمة اليوم</label>
+  ${S.quotes.map((q,i)=>`<div class="card row"><span>${esc(q.t)}</span><span>
+  <button class="s" style="padding:4px 8px;min-height:0" onclick="qa(${i},'pin')">${q.pin?'📌':'تثبيت'}</button>
+  <button class="s" style="padding:4px 8px;min-height:0" onclick="qa(${i},'fav')">${q.fav?'★':'☆'}</button>
+  <button class="s" style="padding:4px 8px;min-height:0" onclick="qa(${i},'del')">حذف</button></span></div>`).join('')}
+  <div class="row"><input id="nq" placeholder="عبارة جديدة"><button onclick="qa(-1,'add')">إضافة</button></div>
+
+  <h2>الأمان</h2>
+  <label class="chk"><input type="checkbox" ${S.pin?'checked':''} onchange="togglePin(this.checked)"> قفل التطبيق بـ PIN (منفصل تمامًا عن PIN البنك)</label>
+
+  <h2>بياناتي</h2>
+  <button class="s block" onclick="exportJSON()">تصدير نسخة احتياطية (JSON غير مشفّر)</button>
+  <button class="s block" onclick="exportEncrypted()">تصدير نسخة احتياطية مشفّرة بكلمة مرور (أقوى)</button>
+  <button class="s block" onclick="$('#impBak').click()">استرجاع نسخة احتياطية (JSON عادي)</button>
+  <input id="impBak" type="file" accept=".json" hidden onchange="importJSON(this.files[0])">
+  <button class="s block" onclick="$('#impEnc').click()">استرجاع نسخة احتياطية مشفّرة</button>
+  <input id="impEnc" type="file" accept=".ebak" hidden onchange="importEncrypted(this.files[0])">
+  <button class="s block" onclick="exportCSV()">تصدير العمليات (CSV)</button>
+  <button class="s block" onclick="exportPDF()">تصدير تقرير (PDF عبر الطباعة)</button>
+  <button class="s block" onclick="go('reportsV')">عرض التقارير</button>
+  <button class="s block" onclick="selfTestUI()">تشغيل اختبار المحاسبة</button>
+  <button class="d block" onclick="wipe()">حذف جميع بياناتي</button>
+
+  <h2>حول</h2>
+  <p class="mut">الإصدار 1.0 · ELYAMANI Money · حساباتي</p>`;
+}
+async function setName(v){S.name=v.trim()||'أحمد';await save();render();}
+async function toggleMotivation(v){S.motivation=v;await save();render();}
+async function qa(i,a){
+  if(a==='add'){const v=$('#nq').value.trim();if(v)S.quotes.push({t:v,pin:false,fav:false});}
+  else if(a==='del')S.quotes.splice(i,1);
+  else if(a==='pin')S.quotes.forEach((q,j)=>q.pin=j===i?!q.pin:false);
+  else S.quotes[i][a]=!S.quotes[i][a];
+  await save();render();
+}
+async function togglePin(v){
+  if(v){
+    const p=prompt('أدخل PIN جديد (أرقام فقط، 4 إلى 12 رقمًا):');
+    if(!p||!/^\d{4,12}$/.test(p))return alert('PIN غير صالح. لم يُحفظ.');
+    S.pinSalt='s'+Date.now()+Math.random().toString(36).slice(2,10);
+    S.pin=await sha256(S.pinSalt+p);
+  }else{S.pin=null;S.pinSalt=null;}
+  await save();render();
+}
+
+/* ---------------------------- BACKUP / EXPORT / WIPE ---------------------------- */
+function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();}
+function exportJSON(){dl(`hisabati-backup-${today()}.json`,JSON.stringify(S,null,0),'application/json');}
+function exportCSV(){
+  const rows=[['التاريخ','النوع','المبلغ','الحساب','إلى','التصنيف','ملاحظة'],
+  ...S.tx.map(t=>[t.date,TL[t.type],t.amount,accName(t.acc),t.to?accName(t.to):'',t.cat||'',t.note||''])];
+  dl(`hisabati-tx-${today()}.csv`,'﻿'+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'),'text/csv');
+}
+function exportPDF(){
+  const w=window.open('','_blank');
+  const m=today().slice(0,7),T=totals(S);
+  w.document.write(`<html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>تقرير حساباتي</title>
+  <style>body{font-family:Tahoma,Arial;padding:24px}h1{color:#000000}table{width:100%;border-collapse:collapse;margin-top:10px}
+  td,th{border:1px solid #ccc;padding:6px;text-align:right}</style></head><body>
+  <h1>تقرير ELYAMANI Money — ${today()}</h1>
+  <p>الإجمالي: ${Object.entries(T).map(([c,v])=>fmt(v)+' '+c).join(' · ')}</p>
+  <table><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>الحساب</th><th>التصنيف</th></tr>
+  ${S.tx.slice(-100).reverse().map(t=>`<tr><td>${t.date}</td><td>${TL[t.type]}</td><td>${fmt(t.amount)}</td><td>${esc(accName(t.acc))}</td><td>${esc(t.cat||'')}</td></tr>`).join('')}
+  </table></body></html>`);
+  w.document.close();setTimeout(()=>w.print(),400);
+}
+function importJSON(f){
+  if(!f)return;const r=new FileReader();
+  r.onload=async()=>{
+    try{
+      const o=JSON.parse(r.result);
+      if(!Array.isArray(o.accounts)||!Array.isArray(o.tx))throw new Error('bad shape');
+      if(!confirm('تحذير: الاسترجاع سيستبدل كل بياناتك الحالية بمحتوى النسخة الاحتياطية. هل تريد المتابعة؟'))return;
+      S=Object.assign(fresh(),o);await save();render();
+    }catch(e){alert('الملف غير صالح أو تالف.');}
+  };
+  r.readAsText(f);
+}
+/* ---- Encrypted backup (AES-GCM via Web Crypto — free, built into the browser, no library) ---- */
+async function deriveKey(password,salt){
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function exportEncrypted(){
+  const pw=prompt('اختر كلمة مرور لهذه النسخة الاحتياطية (احفظها جيدًا — بدونها لا يمكن استرجاع البيانات):');
+  if(!pw)return;
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await deriveKey(pw,salt);
+  const data=new TextEncoder().encode(JSON.stringify(S));
+  const enc=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,data);
+  const payload={v:1,salt:Array.from(salt),iv:Array.from(iv),data:Array.from(new Uint8Array(enc))};
+  dl(`hisabati-backup-encrypted-${today()}.ebak`,JSON.stringify(payload),'application/octet-stream');
+}
+function importEncrypted(f){
+  if(!f)return;const r=new FileReader();
+  r.onload=async()=>{
+    try{
+      const payload=JSON.parse(r.result);
+      const pw=prompt('أدخل كلمة مرور هذه النسخة الاحتياطية:');if(!pw)return;
+      const salt=new Uint8Array(payload.salt),iv=new Uint8Array(payload.iv),data=new Uint8Array(payload.data);
+      const key=await deriveKey(pw,salt);
+      const dec=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,data);
+      const o=JSON.parse(new TextDecoder().decode(dec));
+      if(!Array.isArray(o.accounts)||!Array.isArray(o.tx))throw new Error('bad shape');
+      if(!confirm('تحذير: الاسترجاع سيستبدل كل بياناتك الحالية بمحتوى النسخة الاحتياطية. هل تريد المتابعة؟'))return;
+      S=Object.assign(fresh(),o);await save();render();
+    }catch(e){alert('تعذّر فك التشفير — تأكد من كلمة المرور أو أن الملف غير تالف.');}
+  };
+  r.readAsText(f);
+}
+async function wipe(){
+  if(!confirm('سيتم حذف جميع حساباتك وعملياتك وديونك وأهدافك نهائيًا. هل أنت متأكد؟'))return;
+  if(!confirm('تأكيد نهائي: لا يمكن التراجع عن هذا الإجراء. هل تريد المتابعة؟'))return;
+  S=fresh();await save();render();
+}
+
+/* ---------------------------- PRIVACY ---------------------------- */
+function privacyV(){
+  return`<h1>الخصوصية</h1>
+  <div class="card">
+  <p>ELYAMANI Money (حساباتي) تطبيق مالي شخصي.</p>
+  <p>لا يتصل بالبنك مباشرة، ولا يدّعي أي ربط رسمي ببنك الخرطوم أو أي بنك آخر.</p>
+  <p>لا يطلب PIN البنكي، ولا يطلب OTP، ولا يطلب كلمة مرور البنك، ولا أي بيانات دخول بنكية.</p>
+  <p>جميع بياناتك الأساسية (الحسابات، العمليات، الديون، الأهداف) محفوظة محليًا على جهازك فقط داخل قاعدة بيانات المتصفح (IndexedDB)، ولا تُرسل إلى أي خادم.</p>
+  <p>قفل PIN التطبيق (إن فعّلته) منفصل تمامًا عن أي PIN بنكي، ويُستخدم فقط لمنع فتح التطبيق على جهازك.</p>
+  <p>النسخة الاحتياطية التي تصدّرها أنت تبقى ملفًا على جهازك تتحكم فيه بالكامل؛ لا نرفعها لأي مكان دون أن تفعل ذلك بنفسك.</p>
+  <p>لا توجد أي خدمة سحابية إلزامية في هذه النسخة.</p>
+  </div>`;
+}
+
+/* ---------------------------- SELF TEST UI ---------------------------- */
+function selfTestUI(){const L=runSelfTest();alert(L.join('\n'));}
+
+/* ---------------------------- BOOT ---------------------------- */
+if('serviceWorker'in navigator && (location.protocol==='https:'||location.hostname==='localhost')){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+(async()=>{
+  try{
+    S=(await load())||fresh();
+  }catch(e){
+    S=fresh();
+    setTimeout(()=>alert('تعذّر تحميل بياناتك المحفوظة سابقًا على هذا المتصفح. بدأنا بحسابات فارغة. إن كانت لديك نسخة احتياطية (JSON) استرجعها من الإعدادات.'),300);
+  }
+  if(!S.cats||!S.cats.length)S.cats=[...CATS_DEFAULT];if(!S.budgetCat)S.budgetCat={};if(!S.goals)S.goals=[];
+  if(!S.debts)S.debts=[];if(!S.recurring)S.recurring=[];if(!S.wishlist)S.wishlist=[];if(S.avoided==null)S.avoided=0;
+  if(!S.name)S.name='أحمد';if(S.notifyReminders==null)S.notifyReminders=false;if(S.pinSalt===undefined)S.pinSalt=null;
+  if(S.pin)locked=true;
+  render();
+  checkRecurringReminders();
+})();
+</script>
+</body>
+</html>
