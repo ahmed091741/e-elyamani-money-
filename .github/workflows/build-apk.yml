@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch: {}
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -45,3 +48,16 @@ jobs:
           name: elyamani-money-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Rename APK for release
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk elyamani-money-debug.apk
+
+      - name: Publish APK to a GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="apk-${{ github.run_number }}"
+          gh release create "$TAG" elyamani-money-debug.apk \
+            --title "ELYAMANI Money APK (build ${{ github.run_number }})" \
+            --notes "Debug APK built automatically from commit ${{ github.sha }}." \
+            --repo "${{ github.repository }}"
